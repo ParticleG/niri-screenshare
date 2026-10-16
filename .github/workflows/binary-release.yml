@@ -1,0 +1,44 @@
+name: Binary Release
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  binary:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+      - name: Install native dependencies
+        run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
+      - name: Build default-feature binary
+        run: cargo build --release --locked
+      - name: Package binary
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p dist
+          archive="niri-screenshare-${GITHUB_REF_NAME}-linux-x86_64.tar.gz"
+          tar -C target/release -czf "dist/$archive" niri-screenshare
+          (cd dist && sha256sum "$archive" > SHA256SUMS)
+      - name: Publish binary assets
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${GITHUB_REF_NAME}"
+          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
+            echo "::error::Run this workflow on a release tag (v*)."
+            exit 1
+          fi
+          if gh release view "$tag" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --clobber
+          else
+            gh release create "$tag" dist/* --title "niri-screenshare $tag" --generate-notes
+          fi

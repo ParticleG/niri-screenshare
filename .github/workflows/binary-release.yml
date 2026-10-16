@@ -4,6 +4,11 @@ on:
     tags:
       - 'v*'
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Existing release tag to build (e.g. v0.2.3)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -12,7 +17,22 @@ jobs:
   binary:
     runs-on: ubuntu-24.04
     steps:
+      - name: Resolve release tag
+        id: release
+        env:
+          INPUT_TAG: ${{ inputs.release_tag }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          tag="${INPUT_TAG:-$GITHUB_REF_NAME}"
+          if [[ ! "$tag" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            echo "::error::Invalid release tag: $tag"
+            exit 1
+          fi
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ steps.release.outputs.tag }}
       - uses: actions-rust-lang/setup-rust-toolchain@v1
       - name: Install native dependencies
         run: sudo apt-get update && sudo apt-get install -y libgtk-4-dev libadwaita-1-dev
@@ -20,25 +40,23 @@ jobs:
         run: cargo build --release --locked
       - name: Package binary
         shell: bash
+        env:
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         run: |
           set -euo pipefail
           mkdir -p dist
-          archive="niri-screenshare-${GITHUB_REF_NAME}-linux-x86_64.tar.gz"
+          archive="niri-screenshare-${RELEASE_TAG}-linux-x86_64.tar.gz"
           tar -C target/release -czf "dist/$archive" niri-screenshare
           (cd dist && sha256sum "$archive" > SHA256SUMS)
       - name: Publish binary assets
         env:
           GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ steps.release.outputs.tag }}
         shell: bash
         run: |
           set -euo pipefail
-          tag="${GITHUB_REF_NAME}"
-          if [[ "${GITHUB_REF_TYPE}" != "tag" ]]; then
-            echo "::error::Run this workflow on a release tag (v*)."
-            exit 1
-          fi
-          if gh release view "$tag" >/dev/null 2>&1; then
-            gh release upload "$tag" dist/* --clobber
+          if gh release view "$RELEASE_TAG" >/dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" dist/* --clobber
           else
-            gh release create "$tag" dist/* --title "niri-screenshare $tag" --generate-notes
+            gh release create "$RELEASE_TAG" dist/* --title "niri-screenshare $RELEASE_TAG" --generate-notes
           fi

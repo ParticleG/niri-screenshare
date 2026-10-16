@@ -5,6 +5,10 @@ const NEEDED_KEY: &str = "org.freedesktop.impl.portal.ScreenCast";
 const NEEDED_VALUE: &str = "niri";
 
 pub fn ensure_portals_config() {
+    if std::env::var_os("NIRI_SCREENSHARE_NO_PORTAL_CONFIG").is_some() {
+        return;
+    }
+
     let path = config_home()
         .join("xdg-desktop-portal")
         .join("portals.conf");

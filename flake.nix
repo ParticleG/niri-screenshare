@@ -23,6 +23,8 @@
     {
       formatter = eachSystem (system: pkgsFor.${system}.nixfmt);
 
+      nixosModules.default = import ./nix/nixos.nix;
+
       overlays.default = final: _prev: {
         niri-screenshare = final.callPackage ./nix/package.nix { };
       };

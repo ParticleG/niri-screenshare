@@ -24,6 +24,7 @@ rustPlatform.buildRustPackage {
 
   cargoLock.lockFile = ../Cargo.lock;
 
+  buildNoDefaultFeatures = !withPicker;
   buildFeatures = lib.optional withPicker "picker";
 
   nativeBuildInputs = lib.optionals withPicker [

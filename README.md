@@ -12,13 +12,27 @@ interfaces on the user's existing backends.
 
 ## install
 
-### arch
+### Arch Linux (AUR, recommended)
 
 ```sh
 paru -S niri-screenshare
+# or: yay -S niri-screenshare
 ```
 
-### other
+The AUR package installs the **prebuilt Linux x86_64 binary** from GitHub Releases.
+**Rust and Cargo are not required**, and installation does not compile the application.
+The package includes the portal, D-Bus and systemd integration files.
+Runtime dependencies are still installed by the package manager.
+
+### Prebuilt GitHub release
+
+Prebuilt Linux x86_64 archives and SHA-256 checksums are available on the
+[GitHub Releases page](https://github.com/pantarune/niri-screenshare/releases).
+Manual installation requires installing the matching portal, D-Bus and systemd
+integration files from the release's source tree as well as the binary.
+For Arch Linux, the AUR package handles this automatically.
+
+### Build from source (other distributions)
 
 The default picker build requires the `gtk4` and `libadwaita` system packages.
 Build without the picker via `cargo build --release --no-default-features`.
@@ -107,15 +121,16 @@ stops the corresponding compositor screencast session.
 ## dependencies
 
 - **runtime:** `xdg-desktop-portal`, `pipewire`, `niri`, `gtk4`, `libadwaita`
-- **build:** `cargo`, `gtk4`, `libadwaita`
+- **build from source only:** Rust/Cargo, `gtk4`, `libadwaita`
 
-GTK4/libadwaita are not needed by a `--no-default-features` build.
+The AUR binary package does **not** require the Rust toolchain. GTK4/libadwaita
+are not needed by a `--no-default-features` source build.
 
 ## troubleshooting
 
-**picker doesn't appear** — make sure you built with default features
-(`cargo build --release`) and the service has `NIRI_SCREENSHARE_NO_PICKER`
-unset. Check the service log:
+**picker doesn't appear** — the AUR prebuilt binary includes the picker.
+For source builds, make sure you built with default features
+(`cargo build --release`). Ensure `NIRI_SCREENSHARE_NO_PICKER` is unset. Check the service log:
 
 ```sh
 journalctl --user -u niri-screenshare -n 20

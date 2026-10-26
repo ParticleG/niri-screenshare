@@ -103,16 +103,14 @@ pub fn show_picker_cancellable(
     let status = loop {
         let finished = {
             let mut slot = child_slot.lock().ok()?;
-            match slot.child.as_mut() {
-                Some(child) => match child.try_wait() {
-                    Ok(Some(status)) => {
-                        slot.child.take();
-                        Some(Ok(status))
-                    }
-                    Ok(None) => None,
-                    Err(e) => Some(Err(e)),
-                },
-                None => return None,
+            let child = slot.child.as_mut()?;
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    slot.child.take();
+                    Some(Ok(status))
+                }
+                Ok(None) => None,
+                Err(e) => Some(Err(e)),
             }
         };
         match finished {
